@@ -18,7 +18,7 @@ Parser.prototype={
     if(p.parse && typeof p.parse==="function"){
       return p}
     else if(typeof p==="object" && p && typeof p.length==="number"){
-      return Seq.def(p)},
+      return Seq.def(p)}
     else if(typeof p==="string"){
       return Key.def(p)}
     else if(typeof p==="function"){
