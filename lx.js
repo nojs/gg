@@ -258,13 +258,16 @@ Lexer.prototype={
           list.push(w)}}}},
   keyword7:function(){
     var aa=arguments,tok=aa[0]
+    if(tok[TAG]!=="Keyword"){
+      return false}
     if(1<aa.length){
       for(var i=1,l=aa.length;i<l;i++){
         __assert(typeof aa[i]==="string")
         if(aa[i]===tok[VAL]){
-          return aa[i]}}}
+          return aa[i]}}
+      return false}
     else if(aa.length===1){
-      return tok[TAG]==="Keyword"?tok[VAL]:false}},
+      return tok[VAL]}},
 
 }
 
