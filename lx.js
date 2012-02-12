@@ -1,4 +1,6 @@
 
+var fail={v:"<fail>"}
+
 var TAG=0,VAL=1
 
 function __assert(t,msg){
@@ -49,6 +51,7 @@ LexStream.prototype={
 function Lexer(){
   this.sym={}
   this.alpha={}
+  this.dbg=false
 }
 
 Lexer.prototype={
@@ -72,12 +75,14 @@ Lexer.prototype={
     word:/^([a-zA-Z$_][a-zA-Z$0-9_]*)/g},
   extractors:{
     newlines:function(S){
-      var MAX=10,i=0
+      var MAX=10,i=0,match=false
       do{
-        this.X.newline.lastIndex=0
-        var m=this.X.newline.exec(
+        var X=this.X.newline
+        X.lastIndex=0
+        var m=X.exec(
           S.src.slice(S.i,S.i+MAX))
         if(m){
+          match=true
           this.dbg&&console.log("newline match")
           i++
           S.i+=this.X.newline.lastIndex}
@@ -85,15 +90,18 @@ Lexer.prototype={
       if(i){
         S._nl=i}
       if(S.src.length<=S.i){
-        return ["Eof","eof",S._nl]}},
+        return ["Eof","eof",S._nl]}
+      if(!match){
+        return fail}},
     whitespaces:function(S){
-      var eof=false,MAX=100
+      var eof=false,MAX=100,match=false
       do{
         var again=false
         var src=S.src.slice(S.i,S.i+MAX)
         var X=this.X.spaces;X.lastIndex=0
         var m=X.exec(src)
         if(m){
+          match=true
           this.dbg&&console.log("whitespace match")
           var j=m[0].length
           if(j==MAX){
@@ -103,10 +111,13 @@ Lexer.prototype={
           S.i+=j
           if(eof){
             return ["Eof","eof"]}}
-      }while(again)},
+      }while(again)
+      if(!match){
+        return fail}},
     comments:function(S){
-      var MAX=200
+      var MAX=200,match=false
       if(S.src.slice(S.i,S.i+2)=="//"){
+        match=true
         var src=S.src.slice(S.i,S.i+MAX)
         var X=this.X.comment.short;X.lastIndex=0
         var m=X.exec(src)
@@ -115,7 +126,9 @@ Lexer.prototype={
           throw "comment at the end of file"}
         var j=X.lastIndex
         var comment=src.slice(2,j)
-        S.i+=j}},
+        S.i+=j}
+      if(!match){
+        return fail}},
     string:function(S){
       var MAX=1000
       var c=S.src[S.i]
@@ -140,7 +153,8 @@ Lexer.prototype={
           unescape_string(
             S.src.slice(i,j-1)),S._nl]
         S._nl=0
-        return _}},
+        return _}
+      return fail},
     word:function(S){
       var MAX=100
       this.X.word.lastIndex=0
@@ -155,7 +169,8 @@ Lexer.prototype={
         else{
           var _=["Id",word,S._nl]
           S._nl=0
-          return _}}},
+          return _}}
+      return fail},
     number:function(S){
       //get number
       var MAX=100,src=S.src.slice(S.i,S.i+MAX)
@@ -181,7 +196,8 @@ Lexer.prototype={
           S.i+=j
           var _=["Number",n,S._nl]
           S._nl=0
-          return _}}},
+          return _}}
+      return fail},
     symbol:function(S){
       var k=S.src[S.i]
       var symk=this.sym[k]
@@ -207,11 +223,17 @@ Lexer.prototype={
     "string","word","number","symbol"],
 
   _extract1:function(S){
-    for(var i in this.precedence){
-      var e=this.precedence[i]
-      var tok=this.extractors[e].call(this,S)
-      if(tok){
-        return tok}}
+    do{
+      var again=false
+      for(var i in this.precedence){
+        var e=this.precedence[i]
+        var tok=this.extractors[e].call(this,S)
+        if(tok!==fail){
+          if(!tok){
+            again=true            
+            break}
+          return tok}}
+    }while(again)
     throw "None of the extractors worked"},
   extract:function(src){
     __assert(typeof src==="string")

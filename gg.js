@@ -61,7 +61,7 @@ Seq.prototype={
     var ee=[]
     for(var i=0,l=this.pp.length;i<l;i++){
       var r=this.pp[i].parse(ls)
-      if(r){
+      if(r||r===null){
         if(r===fail){
           return fail}
         //ee.[i]=r
@@ -116,7 +116,7 @@ Key.prototype={
     if(!ls.keyword7(ls.peek(),this._key)){
       return fail}
     ls.next()
-    return null}}
+    return undefined}}
 
 function OnKey(){
   this._key=null}
@@ -148,28 +148,30 @@ List.prototype={
     var L=new List()
     __assert(pp && pp[0])
     var prim=Parser.lift(pp[0])
-    var sep=pp[1]&&array_to_hash(pp[1])
-    var term=pp[2]&&array_to_hash(pp[2])
     L.primary=prim
-    sep&&(L.separators=sep)
-    term&&(L.terminators=term)
+    if(pp[1]){
+      var sep=Parser.lift(pp[1])
+      L.separator=sep}
+    if(pp[2]){
+      var term=Parser.lift(pp[2])
+      L.terminator=term}
     return L},
   _parse:function(ls){
-    var ee=[]
+    var ee=[],end_of_list=false
     do{
       var elt=this.primary.parse(ls)
       if(elt===fail){
         break}
       ee.push(elt)
-      var w=ls.keyword7(ls.peek())
-      if(w && this.separators && w in this.separators){
-        ls.next()}
-    }while(!(
-      //end list, if:
-      //1. separators defined and next token is not separator
-      (w && this.separators && !(w in this.separators)) 
-      //2. terminators defined and next token is terminator
-        ||(w && this.terminators && w in this.terminators)))
+      if(this.separator){
+        var s=this.separator.parse(ls)
+        if(s===fail){
+          if(this.terminator){
+            var t=this.terminator.parse(ls)
+            if(t===fail){
+              return fail}}
+          break}}
+    }while(true)
     if(ee.length===0 && !this.empty_allowed){
       return fail}
     return ee}}
@@ -223,11 +225,13 @@ Opt.prototype={
   def:function(p){
     var P=Parser.lift(p)
     var O=new Opt()
-    O.parser=p
+    O.parser=P
     return O},
   _parse:function(ls){
-    var x=this.parser.parse(ls1)
+    var ls1=ls.clone()
+    var x=this.parser.parse(ls)
     if(x===fail){
+      ls.restore(ls1)
       return null}
     else{
       return x}}}
@@ -556,7 +560,7 @@ function One(){}
 One.prototype={
   __proto__:Parser.prototype,
   parse:function(ls){
-    return null}}
+    return undefined}}
 
 function Zero(){}
 Zero.prototype={
