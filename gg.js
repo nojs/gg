@@ -1,5 +1,8 @@
 
+var assert=require("assert")
+
 function __assert(t,msg){
+  assert.ok(t,msg)
   if(!t) throw ["assert",msg]}
 
 function MAP(a,fn,o){
@@ -25,7 +28,9 @@ Parser.prototype={
       p=p()
       Parser.lift(p)}
     else {
-      throw "unsupported type lift to Parser"}},
+      __assert(false,
+               "unsupported type lift to Parser "+
+               JSON.stringify(p))}},
   parse:function(ls){
     var ls1=ls.clone()
     var x=this._parse(ls)
@@ -90,7 +95,11 @@ MSeq.prototype={
       var p=this.keys[w]||this._default
       if(!p){
         return fail}
-      return p.parse(ls)}}}
+      return p.parse(ls)}
+    if(this._default){
+      return this._default.parse(ls)}
+    else{
+      return fail}}}
 
 
 function Key(){
@@ -178,11 +187,39 @@ Id.prototype={
   builder:function(w){
     return ["Id",w[1]]}}
 
+
+function Number(){}
+Number.prototype={
+  __proto__:Parser.prototype,
+  _parse:function(ls){
+    var w=ls.peek()
+    if(w[0]!=="Number"){
+      return fail}
+    ls.next()
+    return w},
+  builder:function(w){
+    return ["Number",w[1]]}}
+
+
+function String(){}
+String.prototype={
+  __proto__:Parser.prototype,
+  _parse:function(ls){
+    var w=ls.peek()
+    if(w[0]!=="String"){
+      return fail}
+    ls.next()
+    return w},
+  builder:function(w){
+    return ["String",w[1]]}}
+
+
 function Opt(){
-  this.parser=function(){return false}
+  this.parser=function(){return fail}
 }
 
 Opt.prototype={
+  __proto__:Parser.prototype,
   def:function(p){
     var P=Parser.lift(p)
     var O=new Opt()
@@ -206,6 +243,8 @@ function onkey(){
 function list(){
   return List.prototype.def.apply(List,arguments)}
 var id=new Id()
+var number=new Number()
+var string=new String()
 //var one=new One()
 //var zero=new Zero()
 function opt(){
@@ -231,6 +270,8 @@ module.exports={
   mseq:mseq,
   onkey:onkey,
   id:id,
+  string:string,
+  number:number,
   opt:opt,
   key:key,
   expr:expr,
@@ -500,15 +541,15 @@ Choice.prototype={
     var pp=MAP(dd,function(p,i){
       return Parser.lift(p)})
     C.pp=pp
-    return pp},
+    return C},
   _parse:function(ls){
+    var ls0=ls.clone()
     for(var i=0,l=this.pp.length;i<l;i++){
-      var ls0=ls.clone()
-      var x=this.pp[i].parse(ls0)
+      ls.restore(ls0)
+      var x=this.pp[i].parse(ls)
       if(x!==fail){
         return x}}
-    return fail}
-}
+    return fail}}
 Choice.def=Choice.prototype.def
 
 function One(){}

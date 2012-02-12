@@ -182,6 +182,19 @@ tt.add("expr: prefix/suffix",function(){
         ["Id", "eee"]]],
       ["Id", "c"]]]))})
 
+tt.add("choice",function(){
+  var L=new Lx()
+  var ls=L.extract("a 3")
+  var C=gg.choice([
+    gg.id,
+    gg.number])
+  var x0=C.parse(ls)
+  var x1=C.parse(ls)
+  dbg&&__log(x0)
+  dbg&&__log(x1)
+  
+})
+
 tt.run_all(dbg)
 
 module.exports=tt
