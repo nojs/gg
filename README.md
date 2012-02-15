@@ -13,7 +13,9 @@ Run tests with
 * Fix unescape string
 * Add unicode support
 * Add literal regex support
+* Fix bug when === is read as == and =
 
 ##### gg
 
+* Add diagnostic messages
 * Add lineinfo
